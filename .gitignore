@@ -1,0 +1,6 @@
+*.d
+*.o
+*.so
+libfactoriotranslate-python.zip
+libfactoriotranslate-native.so
+libfactoriotranslate.so

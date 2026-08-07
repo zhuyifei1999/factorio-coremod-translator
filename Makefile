@@ -13,7 +13,6 @@ PYTHON_CONFIG ?= $(PYTHON)-config
 PYTHON_CFLAGS := $(shell $(PYTHON_CONFIG) --cflags)
 PYTHON_LDFLAGS := $(shell $(PYTHON_CONFIG) --ldflags --embed)
 
-
 SRC_C := $(wildcard *.c)
 SRC_S := $(wildcard *.S)
 OBJ := $(SRC_C:%.c=$(O)/%.o) $(SRC_S:%.S=$(O)/%.o)
@@ -42,6 +41,7 @@ all: $(O)/libfactoriotranslate.so
 clean:
 	$(call msg,CLEAN,$(O))
 	$(Q)test -d $(O) && find $(O) \( -name '*.o' -o -name '*.d' \) -delete || true
+	$(Q)test -d $(O) && cd $(O) && rm -f libfactoriotranslate.so || true
 	$(Q)test -d $(O) && cd $(O) && rm -f libfactoriotranslate-native.so || true
 	$(Q)test -d $(O) && cd $(O) && rm -f libfactoriotranslate-python.zip || true
 	$(Q)test -d $(O) && find $(O) -type d -empty -delete || true
@@ -85,7 +85,6 @@ $(O)/libfactoriotranslate-python.zip: py py/* py-requirements.txt | $(O)
 	$(Q)$(PYTHON) -m zipapp --compress $(O)/py-build -o $@
 	$(call msg,RM,py-build)
 	$(Q)rm -rf $(O)/py-build
-
 
 $(O)/libfactoriotranslate.so: $(O)/libfactoriotranslate-native.so $(O)/libfactoriotranslate-python.zip | $(O)
 	$(call msg,CAT,$@)

@@ -15,8 +15,8 @@
 
 uintptr_t get_symbol_addr(char *symbol)
 {
-	uintptr_t entrypoint;
 	Elf_Scn *scn = NULL;
+	uintptr_t phdroff;
 	GElf_Ehdr ehdr;
 	GElf_Shdr shdr;
 	Elf_Data *data;
@@ -37,7 +37,7 @@ uintptr_t get_symbol_addr(char *symbol)
 
 	if (!gelf_getehdr(elf, &ehdr))
 		error(1, 0, "get_symbol_addr: gelf_getehdr: %s", elf_errmsg(0));
-	entrypoint = ehdr.e_entry;
+	phdroff = ehdr.e_phoff;
 
 	while ((scn = elf_nextscn(elf, scn)) != NULL) {
 		gelf_getshdr(scn, &shdr);
@@ -62,7 +62,7 @@ uintptr_t get_symbol_addr(char *symbol)
 
 		elf_end(elf);
 		close(fd);
-		return sym.st_value + (getauxval(AT_ENTRY) - entrypoint);
+		return sym.st_value + (getauxval(AT_PHDR) - phdroff);
 	}
 
 	error(1, 0, "get_symbol_addr: Symbol not found: %s", symbol);

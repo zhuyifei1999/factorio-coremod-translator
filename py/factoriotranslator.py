@@ -13,7 +13,7 @@ CONSOLE_DEST_LANG = 'en'
 TEXTBOX_DEST_LANG = 'ko'
 
 
-# Hack: Import native extenions from zip with memfd
+# HACK: Import native extenions from zip with memfd
 def load_zipapp_natives():
     import importlib
     import os
@@ -81,7 +81,7 @@ async def translate(str, dest):
 
 async def translate_console(data):
     if ': ' not in data:
-        # Not a data? Don't translate it
+        # Not a message? Don't translate it
         print(data)
         return
 

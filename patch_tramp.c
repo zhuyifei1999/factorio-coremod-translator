@@ -1,17 +1,22 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
+#include <assert.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <error.h>
 #include <string.h>
 #include <sys/auxv.h>
+#include <sys/mman.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include <gelf.h>
 #include <libelf.h>
 #include <libiberty/demangle.h>
 
 #include "translator.h"
+
+#define PAGE_SIZE 4096ULL
 
 uintptr_t get_symbol_addr(char *symbol)
 {
@@ -98,6 +103,32 @@ static const char target_b_head[] = {
 	0x90,                                /* nop */
 };
 
+static void text_write(int proc_self_mem, uintptr_t dest, void *src, size_t len)
+{
+	size_t dest_page_len;
+	void *dest_page;
+
+	assert(len < PAGE_SIZE);
+
+	if (pwrite(proc_self_mem, src, len, dest) == len)
+		return;
+	else if (errno != EIO)
+		error(1, errno, "text_write: pwrite");
+
+	/* Hard case: We don't have CONFIG_PROC_MEM_ALWAYS_FORCE */
+	dest_page = (void *)(dest & ~(PAGE_SIZE - 1));
+	dest_page_len = PAGE_SIZE;
+
+	if ((uintptr_t) dest_page + dest_page_len < dest + len)
+		dest_page_len = 2 * PAGE_SIZE;
+
+	if (mprotect(dest_page, dest_page_len, PROT_READ | PROT_WRITE))
+		error(1, errno, "text_write: mprotect RW");
+	memcpy((void *)dest, src, len);
+	if (mprotect(dest_page, dest_page_len, PROT_READ | PROT_EXEC))
+		error(1, errno, "text_write: mprotect RX");
+}
+
 
 static void patch_tramp_a(int proc_self_mem, char *symbol, void *hook_entry)
 {
@@ -116,9 +147,7 @@ static void patch_tramp_a(int proc_self_mem, char *symbol, void *hook_entry)
 
 	memcpy(patch_head, target_a_head, sizeof(expected_a_head));
 	memcpy(patch_head + 2, &hook_entry, sizeof(hook_entry));
-	if (pwrite(proc_self_mem, patch_head, sizeof(expected_a_head), symaddr)
-			!= sizeof(expected_a_head))
-		error(1, errno, "patch_tramp_a: pwrite");
+	text_write(proc_self_mem, symaddr, patch_head, sizeof(expected_a_head));
 }
 
 static void patch_tramp_b(int proc_self_mem, char *symbol, void *hook_entry)
@@ -138,9 +167,7 @@ static void patch_tramp_b(int proc_self_mem, char *symbol, void *hook_entry)
 
 	memcpy(patch_head, target_b_head, sizeof(expected_b_head));
 	memcpy(patch_head + 2, &hook_entry, sizeof(hook_entry));
-	if (pwrite(proc_self_mem, patch_head, sizeof(expected_b_head), symaddr)
-			!= sizeof(expected_b_head))
-		error(1, errno, "patch_tramp_b: pwrite");
+	text_write(proc_self_mem, symaddr, patch_head, sizeof(expected_b_head));
 }
 
 void patch_tramps(void)

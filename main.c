@@ -162,12 +162,12 @@ void apply_translation_to_console(const char *orig_str, unsigned long orig_len, 
 	 * on_OutputConsoleRenderer_getRenderItems instead */
 	for (node = list->next; node != list; node = node->next) {
 		key = (void *)node + 0x18;
-		localisation_result = (void *)node + 0x58;
+		localisation_result = (void *)node + 0x78;
 
 #if 0
 		/* This causes desync errors */
 		if (compare_replace_message(key, &old, &new)) {
-			correct = (void *)node + 0x78;
+			correct = (void *)node + 0x98;
 			*correct = 0;
 		}
 #else
@@ -176,7 +176,7 @@ void apply_translation_to_console(const char *orig_str, unsigned long orig_len, 
 #endif
 
 		if (compare_replace_message(localisation_result, &old, &new)) {
-			wrappedtext = (void *)node + 0x98;
+			wrappedtext = (void *)node + 0xc8;
 			/* There's a bit of memory leak but idk if I should
 			 * bother with properly freeing it */
 			*wrappedtext = NULL;
